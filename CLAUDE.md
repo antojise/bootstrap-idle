@@ -38,8 +38,21 @@ node tools/sim.js               # 14 dias de jogo em segundos, 4 perfis de jogad
 node tools/gen-docs.js          # regera as tabelas do GDD a partir de src/data/
 node --test test/engine.test.js # testes da engine, sem navegador
 npx playwright test             # testes de UI, viewport mobile
-python3 -m http.server 8080     # servir localmente (ES modules exigem http, não file://)
+node tools/serve.js 8080        # servir localmente (ES modules exigem http, não file://)
 ```
+
+## Camadas
+
+```
+src/data/    números — fonte de verdade
+src/engine/  regras puras (state, tick, economy, forge, daemons, shop, offline, prestige)
+ui/          app.js (laço e painéis), style.css, sprites.js
+index.html   só a casca: HUD, painéis vazios, nav, folha de detalhe, overlays
+```
+
+O laço de jogo anda pelo **relógio de parede** (`Date.now`), não por `requestAnimationFrame`:
+rAF para de disparar com a tela apagada, que é justamente quando um idle não pode parar de
+contar. Ausência acima de 20s vira produção offline pela mesma regra do jogo fechado.
 
 ## Deploy
 
