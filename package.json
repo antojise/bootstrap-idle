@@ -1,0 +1,13 @@
+{
+  "name": "bootstrap-idle",
+  "version": "0.0.1",
+  "description": "Idle de terminal para Android PWA — reconstrua a máquina, comando por comando.",
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "validate": "node tools/validate.js",
+    "sim": "node tools/sim.js",
+    "gen-docs": "node tools/gen-docs.js",
+    "test": "node --test test/engine.test.js"
+  }
+}
