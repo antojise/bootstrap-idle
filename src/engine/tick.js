@@ -2,9 +2,9 @@
 // Nenhuma referência a document, window, localStorage ou Date.now().
 // O tempo entra como parâmetro `dt` (segundos). A engine não acessa o relógio.
 
-import { NOS, permTempo, permCusto } from '../data/upgrades.js';
+import { NOS } from '../data/upgrades.js';
 import { ARQUITETURAS } from '../data/prestige.js';
-import { executarCmd, calcTickInterval, calcExecsPerTick, permMultConquistas } from './economy.js';
+import { executarCmd, calcTickInterval, calcExecsPerTick, tempoPorPermissao } from './economy.js';
 import { ciclosTotais } from './daemons.js';
 import { avaliarGatilhos } from './acts.js';
 import { avaliar as avaliarConquistas } from './achievements.js';
@@ -84,14 +84,7 @@ export function tick(state, dt) {
 
   // ── Permissões (Ato III+) ─────────────────────────────────────────────────
   if (run.ato >= 3) {
-    // Tempo por permissão, ajustado por nó frio e arquitetura parasita
-    const no          = NOS[run.noAtual];
-    const permMult    = 1 + (no?.permBonus || 0); // frio: 1.5× mais rápido
-    const parasita    = meta.arquitetura === 'parasita' ? 4 : 1;
-    const achMult     = 1 + permMultConquistas(state);
-    const tempoBase   = permTempo(run.permNivel);
-    // Effective tempo: dividido pelos multiplicadores (mais rápido = tempo menor)
-    const tempoEfetivo = tempoBase / (permMult * parasita * achMult);
+    const tempoEfetivo = tempoPorPermissao(state);
 
     run.permProg += dt;
     while (run.permProg >= tempoEfetivo) {

@@ -2,8 +2,8 @@
 // Nenhuma referência a document, window, localStorage ou Date.now().
 
 import { ARQUITETURAS } from '../data/prestige.js';
-import { OFFLINE_BASE, OFFLINE_CAP_H, MARCO_OFFLINE } from '../data/upgrades.js';
-import { producaoPassiva, calcTickInterval, calcExecsPerTick } from './economy.js';
+import { OFFLINE_BASE, OFFLINE_CAP_H, MARCO_OFFLINE, OFFLINE_PERM } from '../data/upgrades.js';
+import { producaoPassiva, calcTickInterval, calcExecsPerTick, tempoPorPermissao } from './economy.js';
 
 // Aplica produção de `segundos` offline ao estado.
 // Muta state diretamente. Retorna { bytes, execs } ganhos para exibição no modal.
@@ -51,11 +51,24 @@ export function aplicarAusencia(state, segundos) {
     }
   }
 
+  // ── Permissões (Ato III+) ──────────────────────────────────────────────────
+  // O kernel emite no relógio dele, não no seu. Mesma fórmula do tick, mesmo
+  // acumulador — sair do app não pode reiniciar a contagem da permissão em curso.
+  let permGanhas = 0;
+  if (run.ato >= 3) {
+    const tempoPorPerm = tempoPorPermissao(state);
+    const acumulado    = run.permProg + segundos * OFFLINE_PERM;
+    permGanhas         = Math.floor(acumulado / tempoPorPerm);
+    run.permProg       = acumulado % tempoPorPerm;
+    run.perm          += permGanhas;
+    stats.permTotal   += permGanhas;
+  }
+
   // Motivo quando ganho é zero
   let motivo = '';
   if (bytesGanhos === 0 && run.daemons.length === 0) {
     motivo = 'nenhum daemon alocado';
   }
 
-  return { bytes: bytesGanhos, execs: execsGanhos, motivo };
+  return { bytes: bytesGanhos, execs: execsGanhos, perm: permGanhas, motivo };
 }

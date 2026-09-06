@@ -95,3 +95,12 @@ export const NOS = {
 export const OFFLINE_BASE   = 0.30;  // fração de bytes produzida offline sem daemon persistente
 export const OFFLINE_CAP_H  = 12;    // teto de horas acumuladas offline
 export const MARCO_OFFLINE  = 0.25;  // fração dos marcos que avança offline
+
+// Permissão continua sendo emitida com o app fechado. Ela não é produção sua:
+// é o kernel autorizando, num relógio que não é o seu. Com emissão só durante a
+// sessão o Ato III virava sala de espera com o app aberto — o simulador mostrava
+// o jogo parado no mesmo muro do dia 3 ao dia 14, em todos os perfis.
+// 0,65 e não 1,0 porque o kernel autoriza mais devagar com a máquina ociosa:
+// a 100% o Ato V abria no dia 2, antes de o jogador sentir a dor que ele resolve.
+// Esta é a alavanca do meio-jogo. Mexer aqui move Ato IV, Ato V e kernel juntos.
+export const OFFLINE_PERM   = 0.65;

@@ -356,7 +356,7 @@ P.arvore = {
           ? `${pior.cmd} ${fmtN(pior.atual)}/${fmtN(pior.alvo)}`
           : pior.tipo === 'bytes'
             ? `${fmtB(pior.atual)}/${fmtB(pior.alvo)}`
-            : `⚿ ${fmtN(pior.atual)}/${fmtN(pior.alvo)}`;
+            : `§ ${fmtN(pior.atual)}/${fmtN(pior.alvo)}`;
         r.barra.style.width = pct.toFixed(1) + '%';
       }
     }
@@ -460,7 +460,7 @@ P.sistema = {
       c.appendChild(el('div', 'secao', 'KERNEL — EMISSÃO DE PERMISSÃO'));
       const pp = loja.permProximo(state);
       c.appendChild(cartao({
-        icone: '⚿',
+        icone: '§',
         titulo: `Nível do kernel ${state.run.permNivel}`,
         desc: `1 permissão a cada ${permTempo(state.run.permNivel).toFixed(0)}s` +
               (pp ? ` → ${permTempo(pp.nivel).toFixed(0)}s.` : '. Nível máximo.'),
@@ -617,7 +617,7 @@ P.mais = {
         const efeitos = Object.entries(a.fx).map(([k, v]) =>
           k === 'global' ? `+${(v * 100).toFixed(0)}% prod` :
           k === 'ciclo' ? `+${v} ciclo` :
-          k === 'permMult' ? `+${(v * 100).toFixed(0)}% ⚿` :
+          k === 'permMult' ? `+${(v * 100).toFixed(0)}% §` :
           k === 'tickBonus' ? `+${(v * 100).toFixed(0)}% vel` :
           k === 'frag' ? `+${v} ◆` : `${k}:${v}`).join(' ');
         c.appendChild(el('div', 'conq' + (tem ? ' got' : ''),
@@ -677,7 +677,7 @@ function cartao({ icone, titulo, desc, dor, bytes, perm, feito, pode, rotulo, ac
   const c = el('div', 'card' + (feito ? ' feito' : pode ? ' pode' : ''));
   const precos = [];
   if (bytes != null && bytes > 0) precos.push(`<span class="preco-b" data-b="${bytes}">${fmtB(bytes)}</span>`);
-  if (perm > 0) precos.push(`<span class="preco-p" data-p="${perm}">⚿ ${perm}</span>`);
+  if (perm > 0) precos.push(`<span class="preco-p" data-p="${perm}">§ ${perm}</span>`);
   c.innerHTML = `<div style="font-size:17px;color:var(--dim);width:20px;text-align:center">${icone}</div>
     <div class="card-corpo">
       <div class="card-tit">${titulo}</div>
@@ -798,7 +798,7 @@ function renderHud() {
     if (on) e.textContent = txt;
   };
   set('.r-ciclo', state.run.ato >= 2, `◍ ${ciclosUsados(state)}/${ciclosTotais(state)}`);
-  set('.r-perm',  state.run.ato >= 3, `⚿ ${fmtN(state.run.perm)}`);
+  set('.r-perm',  state.run.ato >= 3, `§ ${fmtN(state.run.perm)}`);
   set('.r-frag',  state.run.ato >= 5 || state.meta.fragmentos > 0, `◆ ${state.meta.fragmentos}`);
 }
 
@@ -898,9 +898,10 @@ function laco() {
 // Tempo em segundo plano vira produção offline, com o mesmo redutor do jogo fechado.
 function recolherAusencia(segundos) {
   const r = aplicarAusencia(state, segundos);
-  if (r.bytes > 0) {
-    log(`${fmtT(segundos)} em segundo plano → +${fmtB(r.bytes)}`, 'ok');
-    if (segundos > 120) toast('DAEMONS CONTINUARAM', `+${fmtB(r.bytes)} em ${fmtT(segundos)}`);
+  if (r.bytes > 0 || r.perm > 0) {
+    const g = `+${fmtB(r.bytes)}${r.perm > 0 ? ` · +${fmtN(r.perm)} §` : ''}`;
+    log(`${fmtT(segundos)} em segundo plano → ${g}`, 'ok');
+    if (segundos > 120) toast('A MÁQUINA CONTINUOU', `${g} em ${fmtT(segundos)}`);
   }
   salvar();
 }
@@ -966,15 +967,20 @@ function iniciar() {
   if (pendenteOffline) {
     const { fora } = pendenteOffline;
     const r = aplicarAusencia(state, fora);
-    if (r.bytes > 0) {
+    if (r.bytes > 0 || r.perm > 0) {
+      const ganhos = [];
+      if (r.bytes > 0) ganhos.push(`<span style="color:var(--green);font-size:16px">+${fmtB(r.bytes)}</span>`);
+      if (r.perm  > 0) ganhos.push(`<span style="color:var(--cyan);font-size:16px">+${fmtN(r.perm)} §</span>`);
       abrirOverlay({
         n: 'ENQUANTO VOCÊ ESTAVA FORA',
         titulo: fmtT(fora),
-        texto: `Os daemons continuaram rodando a ${state.run.ups.daemonPlus ? '100' : '30'}% da velocidade.`,
-        rev: `<span style="color:var(--green);font-size:16px">+${fmtB(r.bytes)}</span>`,
+        texto: r.bytes > 0
+          ? `Os daemons continuaram a ${state.run.ups.daemonPlus ? '100' : '30'}% da velocidade. O kernel não para de autorizar.`
+          : 'O kernel continuou autorizando. Os daemons, sem ciclo, não produziram nada.',
+        rev: ganhos.join(' &nbsp;·&nbsp; '),
         btn: 'RECOLHER',
       });
-      log(`offline ${fmtT(fora)} → +${fmtB(r.bytes)}`, 'ok');
+      log(`offline ${fmtT(fora)} → +${fmtB(r.bytes)}${r.perm > 0 ? ` · +${fmtN(r.perm)} §` : ''}`, 'ok');
     } else if (r.motivo) {
       log(`offline ${fmtT(fora)} → nada (${r.motivo})`, 'aviso');
     }

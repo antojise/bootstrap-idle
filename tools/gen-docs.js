@@ -78,7 +78,7 @@ console.log(`\nTeto no nível ${PERM_NIVEL_MAX}: **${permDia.toLocaleString()} p
 
 // ── GDD/02 — Melhorias ───────────────────────────────────────────────────────
 sep('GDD/02-ECONOMIA.md — Melhorias');
-console.log('| Melhoria | Ato | Bytes | ⚿ | O que faz | A dor que ela responde |');
+console.log('| Melhoria | Ato | Bytes | § | O que faz | A dor que ela responde |');
 console.log('|---|:-:|---:|--:|---|---|');
 for (const [id, up] of Object.entries(UPGRADES)) {
   console.log(`| **${up.nome}** | ${up.ato} | ${fmt(up.bytes)} | ${up.perm || '—'} | ${up.desc} | *${up.resolve}* |`);

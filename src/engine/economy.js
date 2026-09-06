@@ -3,7 +3,7 @@
 
 import { CMDS, ORDER } from '../data/commands.js';
 import { ARQUITETURAS, fragMult as calcFragMult } from '../data/prestige.js';
-import { NOS, daemonTick, DAEMON_TICK } from '../data/upgrades.js';
+import { NOS, daemonTick, DAEMON_TICK, permTempo } from '../data/upgrades.js';
 import { LISTA as ACHIEVEMENTS } from '../data/achievements.js';
 
 // ── Multiplicadores ──────────────────────────────────────────────────────────
@@ -129,6 +129,18 @@ export function ciclosConquistas(state) {
     }
   }
   return extra;
+}
+
+// Segundos para o kernel emitir uma permissão, já com nó, arquitetura e conquistas.
+// Vive aqui porque tick.js e offline.js precisam do MESMO número: duplicar a fórmula
+// faria a emissão mudar conforme o jogador estivesse com o app aberto ou fechado.
+export function tempoPorPermissao(state) {
+  const { run, meta } = state;
+  const no       = NOS[run.noAtual];
+  const permMult = 1 + (no?.permBonus || 0);          // frio: 1,5× mais rápido
+  const parasita = meta.arquitetura === 'parasita' ? 4 : 1;
+  const achMult  = 1 + permMultConquistas(state);
+  return permTempo(run.permNivel) / (permMult * parasita * achMult);
 }
 
 // Bônus de emissão de permissão das conquistas (fx.permMult)

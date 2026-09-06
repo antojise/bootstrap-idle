@@ -21,14 +21,23 @@ const PERFIS = [
   { nome: 'Casual',  sessoesPorDia: 1, minPorSessao: 3  },  // 3min/dia
 ];
 
-// ── Alvos de ritmo ───────────────────────────────────────────────────────────
+// ── Alvos de ritmo (GDD/09-BALANCEAMENTO.md) ─────────────────────────────────
+// Bandas, não pontos. Chegar cedo demais reprova igual a chegar tarde: um Ato que
+// abre antes de o jogador sentir a dor que ele resolve não é alívio, é ruído.
+// Os três primeiros são prazos (só o teto importa); os dois últimos são janelas.
+const D = 86400;
 const ALVOS = [
-  { nome: 'Ato II',   alvo: 6 * 60,          desc: '< 6 min' },   // segundos na sessão
-  { nome: 'Ato III',  alvo: 1 * 86400,        desc: 'dia 1' },
-  { nome: 'Ato IV',   alvo: 2 * 86400,        desc: 'dia 2' },
-  { nome: 'Ato V',    alvo: 4 * 86400,        desc: 'dia 4–6' },
-  { nome: 'kernel',   alvo: 9 * 86400,        desc: 'dia 9–14' },
+  { chave: 'ato2',   nome: 'Ato II',  min: 0,     max: 6 * 60, rot: '< 6 min'  },
+  { chave: 'ato3',   nome: 'Ato III', min: 0,     max: 1 * D,  rot: 'até dia 1' },
+  { chave: 'ato4',   nome: 'Ato IV',  min: 0,     max: 2 * D,  rot: 'até dia 2' },
+  { chave: 'ato5',   nome: 'Ato V',   min: 4 * D, max: 6 * D,  rot: 'dia 4–6'   },
+  { chave: 'kernel', nome: 'kernel',  min: 9 * D, max: 14 * D, rot: 'dia 9–14'  },
 ];
+
+// O veredito sai de UM perfil. Cobrar a mesma data de quem joga 2h/dia e de quem
+// joga 3min/dia não é alvo, é fantasia — o de 2h tem que ir na frente mesmo.
+// Os outros perfis são diagnóstico: mostram a forma da curva, não aprovam nada.
+const REFERENCIA = 'Regular';
 
 // ── Bot — clicks manuais por segundo (modelo do jogador) ────────────────────
 // Antes de historico: 1 tap/s. Com historico: 4 taps/s (auto-repeat).
@@ -244,11 +253,12 @@ function fmtTempo(s) {
   return `dia ${(s / 86400).toFixed(1)}`;
 }
 
-function fmtAlvo(s, alvo) {
-  const pct = s / alvo;
-  if (pct <= 1.2) return '✓';
-  if (pct <= 2.0) return '~';
-  return '✗';
+// ↑ cedo demais · ✓ dentro da banda · ↓ tarde demais · ✗ não atingido em 14 dias
+function marcar(s, alvo) {
+  if (s == null) return '✗';
+  if (s < alvo.min) return '↑';
+  if (s > alvo.max) return '↓';
+  return '✓';
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
@@ -273,25 +283,44 @@ for (const perfil of PERFIS) {
   resultados.push({ perfil: perfil.nome, marcos });
 }
 
-// Tabela comparativa
-console.log('\n\n── Tabela comparativa ──────────────────────────────────────────');
-const cols = ['Ato II (<6min)', 'Ato III (dia 1)', 'Ato IV (dia 2)', 'Ato V (dia 4-6)', 'kernel (dia 9-14)'];
-const chaves = ['ato2', 'ato3', 'ato4', 'ato5', 'kernel'];
-const alvosRef = [6 * 60, 86400, 2 * 86400, 4 * 86400, 9 * 86400];
-
-// Cabeçalho
-const header = 'Perfil       ' + cols.map(c => c.padEnd(16)).join('');
+// ── Tabela comparativa ───────────────────────────────────────────────────────
+console.log('\n\n── Ritmo por perfil ────────────────────────────────────────────');
+const header = 'Perfil       ' + ALVOS.map(a => `${a.nome} (${a.rot})`.padEnd(20)).join('');
 console.log(header);
 console.log('─'.repeat(header.length));
 
 for (const { perfil, marcos } of resultados) {
-  const linha = perfil.padEnd(13) + chaves.map((k, i) => {
-    if (!marcos[k]) return '(não atingido)'.padEnd(16);
-    const s = marcos[k];
-    const status = fmtAlvo(s, alvosRef[i]);
-    return `${status} ${fmtTempo(s)}`.padEnd(16);
+  const ref = perfil === REFERENCIA;
+  const linha = (ref ? '▸ ' : '  ') + perfil.padEnd(11) + ALVOS.map(a => {
+    const s = marcos[a.chave];
+    if (s == null) return '✗ não chegou'.padEnd(20);
+    return `${marcar(s, a)} ${fmtTempo(s)}`.padEnd(20);
   }).join('');
   console.log(linha);
 }
 
-console.log('\nLegenda: ✓ dentro do alvo  ~ até 2× o alvo  ✗ fora do alvo\n');
+console.log('\n↑ cedo demais   ✓ dentro da banda   ↓ tarde demais   ✗ não atingido em 14 dias');
+console.log(`▸ ${REFERENCIA} é o perfil de referência: só ele decide aprovado/reprovado.`);
+console.log('  Ativo deve ir na frente e Casual deve ficar atrás — isso é a curva funcionando.');
+
+// ── Veredito ─────────────────────────────────────────────────────────────────
+const ref = resultados.find(r => r.perfil === REFERENCIA);
+const falhas = ALVOS.filter(a => marcar(ref.marcos[a.chave], a) !== '✓');
+
+console.log('\n── Veredito ────────────────────────────────────────────────────');
+if (falhas.length === 0) {
+  console.log(`✓ ${REFERENCIA} cumpre as ${ALVOS.length} bandas de ritmo do GDD/09.\n`);
+} else {
+  for (const a of falhas) {
+    const s = ref.marcos[a.chave];
+    const como = s == null ? 'não foi atingido em 14 dias'
+      : s < a.min ? `chegou em ${fmtTempo(s)} — cedo demais`
+      : `chegou em ${fmtTempo(s)} — tarde demais`;
+    console.log(`✗ ${a.nome} (alvo ${a.rot}): ${como}`);
+  }
+  console.log('\nAlavancas, na ordem em que se mexe (GDD/09):');
+  console.log('  meio-jogo arrastando ou correndo → OFFLINE_PERM, permTempo, PERM_NIVEL_MAX');
+  console.log('  jogar ativamente não compensa    → MARCO_OFFLINE');
+  console.log('  último recurso                   → y dos comandos\n');
+  process.exitCode = 1;
+}
